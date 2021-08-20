@@ -1,0 +1,109 @@
+---
+title: "Day 10 Tasks"
+author: "Alex Vand"
+date: "8/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+```{r}
+meteorological_data <- read_csv(here("data", "ntl20_v6.csv"))
+
+ice_data <- read_csv(here("data", "ntl33_v7.csv"), na = "-999")
+```
+
+```{r}
+frozen_days <- ggplot(data = ice_data, aes(x = lakeid, y = ice_duration)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(aes(color = lakeid)) +
+  labs(x = "Lake name",
+       y = "Number of days frozen",
+       title = "Frozen days per lake")
+
+frozen_days
+```
+
+```{r}
+mean_ice_cover <- ice_data %>% 
+  group_by(year = year4) %>% 
+  summarize(mean_ice_cover = round(mean(ice_duration), 2))
+
+ice_per_year <- ggplot(data = mean_ice_cover, aes(x = year, y = mean_ice_cover)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Year",
+       y = "Frozen days",
+       title = "Frozen days per year",
+       subtitle = "ice coverage per year measured by average number of frozen days")
+
+ice_per_year
+```
+
+This graph indicates an overall slight decrease in the average number of frozen days per year from 1851 to 2019.
+
+```{r}
+winter_data <- meteorological_data %>% 
+  filter(month %in% c(1, 2, 12)) %>% 
+  group_by(year = year4) %>% 
+  summarize(mean_air_temp = round(mean(ave_air_temp_adjusted), 2))
+```
+
+```{r}
+winter_plot <- ggplot(data = winter_data, aes(x = year, y = mean_air_temp)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Year",
+       y = "Average air temperature (Celsius)",
+       title = "Mean winter temperatures for the Madison Lake Area")
+
+winter_plot
+```
+
+This graph indicates fairly stable average mean air temperatures for the Madison Lake area from 1869 to 2019.
+
+```{r}
+join_data <- full_join(mean_ice_cover, winter_data)
+```
+
+```{r}
+temp_vs_ice <- ggplot(data = join_data, aes(x = mean_air_temp, y = mean_ice_cover)) +
+  geom_point() +
+  labs(x = "Temperature (Celsius)",
+       y = "Number of frozen days",
+       title = "Mean winter temperature vs. mean ice duration in Michigan Lake Area")
+
+temp_vs_ice
+```
+
+variable trend? no clear trend?
+
+This graph displays a slightly negative correlation between the mean ice duration and mean temperature for winter months.
+
+
+```{r}
+thaw_dates <- ice_data %>% 
+  filter(year4 >= 1970) %>% 
+  mutate(ice_off = lubridate::ymd(ice_off)) %>% 
+  mutate(day = lubridate::yday(ice_off))
+
+thaw_plot <- ggplot(data = thaw_dates, aes(x = year4, y = day)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Year",
+       y = "Numeric day of the year")
+
+thaw_plot
+```
+
+This graph displays a negative correlation between thaw date and year, indicating that the thaw date is shifting earlier in the year from 1970 to 2019.
+
+
+
+
+
